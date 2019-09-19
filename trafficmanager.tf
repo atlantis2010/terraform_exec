@@ -6,8 +6,8 @@ resource "random_id" "server" {
 }
 
 resource "azurerm_traffic_manager_profile" "interprovider" {
-  name                   = "dt2-trafficmanager"
-  resource_group_name    = "${azurerm_resource_group.rg.name}"
+  name                   = "interprovider-trafficmanager"
+  resource_group_name    = "user17-rg"
   traffic_routing_method = "Weighted"
 
   dns_config {
@@ -24,18 +24,18 @@ resource "azurerm_traffic_manager_profile" "interprovider" {
 
 resource "azurerm_traffic_manager_endpoint" "azureLB" {
   name                = "first"
-  resource_group_name = "${azurerm_resource_group.rg.name}"
+  resource_group_name = "user17-rg"
   profile_name        = "${azurerm_traffic_manager_profile.interprovider.name}"
-  target              = "dt2-azure4.koreasouth.cloudapp.azure.com"
+  target              = "user17skcncazureip.koreasouth.cloudapp.azure.com"
   type                = "externalEndpoints"
   weight              = 1
 }
 
 resource "azurerm_traffic_manager_endpoint" "awsLB" {
   name                = "second"
-  resource_group_name = "${azurerm_resource_group.rg.name}"
+  resource_group_name = "user17-rg"
   profile_name        = "${azurerm_traffic_manager_profile.interprovider.name}"
-  target              = "dt2-aws4.ap-northeast-2.elb.amazonaws.com"
+  target              = "albuser17-774421534.ap-northeast-1.elb.amazonaws.com"
   type                = "externalEndpoints"
   weight              = 2
 }

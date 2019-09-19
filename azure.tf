@@ -1,5 +1,5 @@
 resource "azurerm_resource_group" "rg" {
-  name     = "dt2-rg"
+  name     = "user17-rg"
   location = "koreasouth"
 }
 
@@ -8,7 +8,7 @@ variable "application_port" {
    default     = 80
 }
 resource "azurerm_network_security_group" "secGroup" {
-    name = "dt2-sg"
+    name = "secGroupuser17"
     location = "koreasouth"
     resource_group_name ="${azurerm_resource_group.rg.name}"
 
@@ -38,29 +38,29 @@ resource "azurerm_network_security_group" "secGroup" {
 }
 
 resource "azurerm_virtual_network" "vnetwork" {
-    name = "dt2-vnet"
-    address_space = ["192.168.2.0/24"]
+    name = "user17vn"
+    address_space = ["17.0.0.0/16"]
     location = "koreasouth"
     resource_group_name = "${azurerm_resource_group.rg.name}"
     
 }
 resource "azurerm_subnet" "mysubnet" {
-    name = "dt2-subnet"
+    name = "MySubnetuser17"
     resource_group_name = "${azurerm_resource_group.rg.name}"
     virtual_network_name = "${azurerm_virtual_network.vnetwork.name}"
-#    network_security_group_id = "${azurerm_network_security_group.secGroup.id}"
-    address_prefix = "192.168.2.0/25"
+    network_security_group_id = "${azurerm_network_security_group.secGroup.id}"
+    address_prefix = "17.0.1.0/24"
 }
 resource "azurerm_public_ip" "publicdomainip" {
-    name                         = "dt2-publicdomainip"
-    location                     = "koreasouth"
-    resource_group_name          = "${azurerm_resource_group.rg.name}"
-    allocation_method            = "Static"
-    domain_name_label            = "dt2-azure4"
+ name                         = "domainipuser17"
+ location                     = "koreasouth"
+ resource_group_name          = "${azurerm_resource_group.rg.name}"
+ allocation_method            = "Static"
+ domain_name_label            = "user17skcncazureip"
 }
 
 resource "azurerm_public_ip" "rdpip" {
-    name = "dt2-rdpip${count.index}"
+    name = "rdpipuser17${count.index}"
     location = "koreasouth"
     resource_group_name = "${azurerm_resource_group.rg.name}"
     allocation_method = "Dynamic"
@@ -69,7 +69,7 @@ resource "azurerm_public_ip" "rdpip" {
 
 resource "azurerm_lb" "lb" {
   resource_group_name = "${azurerm_resource_group.rg.name}"
-  name                = "dt2-lb"
+  name                = "user17loadbal"
   location            = "koreasouth"
   
   frontend_ip_configuration {
@@ -81,7 +81,7 @@ resource "azurerm_lb" "lb" {
 resource "azurerm_lb_backend_address_pool" "bp" {
     resource_group_name = "${azurerm_resource_group.rg.name}"
     loadbalancer_id     = "${azurerm_lb.lb.id}"
-    name                = "dt2-bp"
+    name                = "BackendPooluser17"
 }
 
 resource "azurerm_network_interface_backend_address_pool_association" "bpAS" {
@@ -94,7 +94,7 @@ resource "azurerm_network_interface_backend_address_pool_association" "bpAS" {
 resource "azurerm_lb_probe" "lb_probe" {
   resource_group_name = "${azurerm_resource_group.rg.name}"															  
   loadbalancer_id     = "${azurerm_lb.lb.id}"
-  name                = "dt2-lb-probe"
+  name                = "user17tcpProbe"
   protocol            = "tcp"
   port                = 80
   interval_in_seconds = 5
@@ -104,7 +104,7 @@ resource "azurerm_lb_probe" "lb_probe" {
 resource "azurerm_lb_rule" "lb_rule" {								
   resource_group_name            = "${azurerm_resource_group.rg.name}"
   loadbalancer_id                = "${azurerm_lb.lb.id}"
-  name                           = "dt2-lb-rule"
+  name                           = "user17LBRule"
   protocol                       = "tcp"
   frontend_port                  = "${var.application_port}"
   backend_port                   = "${var.application_port}"
@@ -117,7 +117,7 @@ resource "azurerm_lb_rule" "lb_rule" {
 }
 
 resource "azurerm_network_interface" "nic" {
-  name                = "dt2-nic${count.index}"
+  name                = "user17nic${count.index}"
   location            = "koreasouth"
   resource_group_name = "${azurerm_resource_group.rg.name}"
   network_security_group_id = "${azurerm_network_security_group.secGroup.id}"  
@@ -132,7 +132,7 @@ resource "azurerm_network_interface" "nic" {
 }
 
 resource "azurerm_availability_set" "avset" {
-  name                         = "dt2-avset"
+  name                         = "avsetuser17"
   location                     = "koreasouth"
   resource_group_name          = "${azurerm_resource_group.rg.name}"
   platform_fault_domain_count  = 2
@@ -141,12 +141,12 @@ resource "azurerm_availability_set" "avset" {
 }
 
 resource "azurerm_virtual_machine" "vm" {
-  name                  = "dt2-vm${count.index}"
+  name                  = "user17vm${count.index}"
   location              = "koreasouth"
   resource_group_name   = "${azurerm_resource_group.rg.name}"
- availability_set_id   = "${azurerm_availability_set.avset.id}"
+  availability_set_id   = "${azurerm_availability_set.avset.id}"
   network_interface_ids = ["${element(azurerm_network_interface.nic.*.id, count.index)}"]
-  vm_size = "Standard_D1_v2"
+  vm_size = "Standard_DS1_v2"
   count = 2
   storage_image_reference {
         publisher = "RedHat"
@@ -155,19 +155,18 @@ resource "azurerm_virtual_machine" "vm" {
         version   = "latest"
     }  
   storage_os_disk {
-        name = "dt2-dist${count.index}"
+        name = "user17osdisk${count.index}"
         caching = "ReadWrite"
         create_option = "FromImage"
         managed_disk_type = "Standard_LRS"
   }
 
   os_profile {
-        computer_name = "dt2-vm${count.index}"
-        admin_username = "azuredt2"
-        admin_password= "Jsgood414159!"
+        computer_name = "user17vm${count.index}"
+        admin_username = "azureuser"
+        admin_password= "Passw0rd"		
   }
   os_profile_linux_config {
         disable_password_authentication = false											 
   }
 }
-

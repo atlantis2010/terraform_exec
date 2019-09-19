@@ -1,59 +1,68 @@
 resource "aws_vpc" "awsvpc" {
-  cidr_block           = "192.168.1.0/24"
+  cidr_block           = "117.0.0.0/16"
   enable_dns_hostnames = true
   enable_dns_support   = true
   instance_tenancy     = "default"
-  tags                 = { 
-        Name           = "dt2-vpc"
-    }
+  tags = {
+    Name = "user17vpc"
+  }
 }
 
 resource "aws_internet_gateway" "awsipg" {
-  vpc_id               = "${aws_vpc.awsvpc.id}"
-  tags                 = { 
-        Name           = "dt2-igw"
-    }
+  vpc_id = "${aws_vpc.awsvpc.id}"
+  tags = {
+    Name = "user17igw"
+  }
 }
 
 resource "aws_subnet" "public_1a" {
-  vpc_id               = "${aws_vpc.awsvpc.id}"
-  availability_zone    = "ap-northeast-2a"
-  cidr_block           = "192.168.1.0/25"
-  tags                 = { 
-        Name           = "dt2-public-1a"
-    }
+  vpc_id            = "${aws_vpc.awsvpc.id}"
+  availability_zone = "ap-northeast-1a"
+  cidr_block        = "117.0.1.0/24"
+  tags = {
+    Name = "user17subnet1"
+  }
 }
 
 resource "aws_subnet" "public_1b" {
-  vpc_id               = "${aws_vpc.awsvpc.id}"
-  availability_zone    = "ap-northeast-2c"
-  cidr_block           = "192.168.1.128/25"
-  tags                 = {  
-         Name          = "dt2-public-1b"
-    }
+  vpc_id            = "${aws_vpc.awsvpc.id}"
+  availability_zone = "ap-northeast-1c"
+  cidr_block        = "117.0.2.0/24"
+  tags = {
+    Name = "user17subnet2"
+  }
 }
 
-resource "aws_eip" "awseip3" {
+resource "aws_eip" "awseip1" {
   vpc = false
-  tags={name="dt2-eip3"}
+  tags = {
+    Name = "user17eip1"
+  }
 }
 
-resource "aws_eip" "awseip4" {
+resource "aws_eip" "awseip2" {
   vpc = false
-  tags={name="dt2-eip4"}
+  tags = {
+    Name = "user17eip2"
+  }
 }
 
 resource "aws_nat_gateway" "natgate_1a" {
-  allocation_id = "${aws_eip.awseip3.id}"
+  allocation_id = "${aws_eip.awseip1.id}"
   subnet_id     = "${aws_subnet.public_1a.id}"
-  tags={name="dt2-ngw-1a"}
+  tags = {
+    Name = "user17ngw"
+  }
 }
 
 resource "aws_nat_gateway" "natgate_1b" {
-  allocation_id = "${aws_eip.awseip4.id}"
+  allocation_id = "${aws_eip.awseip2.id}"
   subnet_id     = "${aws_subnet.public_1b.id}"
-  tags={name="dt2-ngw-1b"}
+  tags = {
+    Name = "user17ngw"
+  }
 }
+
 
 resource "aws_route_table" "awsrtp" {
   vpc_id = "${aws_vpc.awsvpc.id}"
@@ -62,20 +71,19 @@ resource "aws_route_table" "awsrtp" {
     cidr_block = "0.0.0.0/0"
     gateway_id = "${aws_internet_gateway.awsipg.id}"
   }
-  
-  tags={name="dt2-rt"}
+  tags = {
+    Name = "user17route"
+  }
 }
 
 resource "aws_route_table_association" "awsrtp1a" {
   subnet_id      = "${aws_subnet.public_1a.id}"
   route_table_id = "${aws_route_table.awsrtp.id}"
-  
 }
 
-resource "aws_route_table_association" "aiwsrtp1b" {
+resource "aws_route_table_association" "awsrtp1b" {
   subnet_id      = "${aws_subnet.public_1b.id}"
   route_table_id = "${aws_route_table.awsrtp.id}"
-  
 }
 
 resource "aws_default_security_group" "awssecurity" {
@@ -94,8 +102,9 @@ resource "aws_default_security_group" "awssecurity" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  
-  tags={name="dt2-dsg"}
+  tags = {
+    Name = "user17sg"
+  }
 } 
 
 resource "aws_default_network_acl" "awsnetworkacl" {
@@ -123,17 +132,15 @@ resource "aws_default_network_acl" "awsnetworkacl" {
     "${aws_subnet.public_1a.id}",
     "${aws_subnet.public_1b.id}",
   ]
-  
-  tags={name="dt2-nacl"}
 }
 
 variable "amazon_linux" {
-  # Amazon Linux AMI 2017.03.1 (HVM), SSD Volume Type - ami-4af5022c
-  default = "ami-095ca789e0549777d"
+  # Amazon Linux 2 AMI (HVM), SSD Volume Type - ami-0c3fd0f5d33134a76 (64∫Ò∆Æ x86)
+  default = "ami-0c3fd0f5d33134a76"
 }
 
 resource "aws_security_group" "webserverSecurutyGroup" {
-  name        = "webserverSecurutyGroup"
+  name        = "user17webserverSecurutyGroup"
   description = "open ssh port for webserverSecurutyGroup"
 
   vpc_id = "${aws_vpc.awsvpc.id}"
@@ -158,14 +165,13 @@ resource "aws_security_group" "webserverSecurutyGroup" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  tags={name="dt2-websg"}
 }
 
 resource "aws_instance" "web1" {
   ami               = "${var.amazon_linux}"
-  availability_zone = "ap-northeast-2a"
+  availability_zone = "ap-northeast-1a"
   instance_type     = "t2.micro"
-  key_name = "sre-aws-mgmtvm-test"
+  key_name = "user17-key"
   vpc_security_group_ids = [
     "${aws_security_group.webserverSecurutyGroup.id}",
     "${aws_default_security_group.awssecurity.id}",
@@ -173,14 +179,16 @@ resource "aws_instance" "web1" {
 
   subnet_id                   = "${aws_subnet.public_1a.id}"
   associate_public_ip_address = true
-  tags={name="dt2-web1"}
+  tags = {
+    Name = "user17web1"
+  }
 }
 
 resource "aws_instance" "web2" {
   ami               = "${var.amazon_linux}"
-  availability_zone = "ap-northeast-2c"
+  availability_zone = "ap-northeast-1c"
   instance_type     = "t2.micro"
-  key_name = "sre-aws-mgmtvm-test"	
+  key_name = "user17-key"	
   vpc_security_group_ids = [
     "${aws_security_group.webserverSecurutyGroup.id}",
     "${aws_default_security_group.awssecurity.id}",
@@ -188,11 +196,13 @@ resource "aws_instance" "web2" {
 				
   subnet_id                   = "${aws_subnet.public_1b.id}"
   associate_public_ip_address = true
-  tags={name="dt2-web2"}
+  tags = {
+    Name = "user17web2"
+  }
 }
 	
 resource "aws_alb" "frontend" {
-  name            = "dt2-alb"
+  name            = "albuser17"
   internal        = false
   security_groups = ["${aws_security_group.webserverSecurutyGroup.id}"]
   subnets         = [
@@ -200,11 +210,10 @@ resource "aws_alb" "frontend" {
     "${aws_subnet.public_1b.id}"
   ]
   lifecycle { create_before_destroy = true }
-  tags={name="dt2-alb"}
 }
 
 resource "aws_alb_target_group" "frontendalb" {
-  name     = "dt2-alb-tg"
+  name     = "frontendtargetgroupuser17"
   port     = 80
   protocol = "HTTP"
   vpc_id   = "${aws_vpc.awsvpc.id}"
@@ -215,7 +224,6 @@ resource "aws_alb_target_group" "frontendalb" {
     healthy_threshold   = 3
     unhealthy_threshold = 3				
   }
-  tags={name="dt2-alb-tg"}
 }
 
 resource "aws_alb_target_group_attachment" "frontend1" {
